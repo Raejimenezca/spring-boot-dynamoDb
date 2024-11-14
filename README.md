@@ -14,6 +14,11 @@ comando>> code ~/.aws/credentials
 Los siguientes accesos se deben reemplazar en el archivo "credentials" donde se soliciten
 (con este usuario de IAM solo tendrá permisos para DynamoDB)
 
+aws.accessKeyId=AKIA27VY4YCSMBAKWXET
+aws.secretKey=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
+
+aws.region=us-east-1
+
 Recuerde installar los paquetes de Maven antes de correr la aplicación.
 
 Ejecutar la aplicación ya sea con la interfaz de IntelliJ o
@@ -60,3 +65,10 @@ se recomienda probar desde Postman:
 7. Servicio para actualizar el nombre de una sucursal
    URL: http://127.0.0.1:8080/api/franquicias/actualizarNombre?franquiciaId=1234&nuevoNombre=coca_cola
    Método Http: PUT
+
+8. Obtener producto con mayor stock de cada sucursal perteneciente a una franquicia dada
+   URL: http://127.0.0.1:8080/api/productos/consultaMaxProductosStock?franquiciaId=1234bj
+   Método Http: POST
+
+Prueba de funcionamiento query # 8:
+<img width="1486" alt="image" src="https://github.com/user-attachments/assets/3a504340-e402-48db-9266-a852ef0452f9">
