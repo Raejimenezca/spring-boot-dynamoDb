@@ -71,4 +71,5 @@ se recomienda probar desde Postman:
    Método Http: POST
 
 Prueba de funcionamiento query # 8:
-<img width="1486" alt="image" src="https://github.com/user-attachments/assets/3a504340-e402-48db-9266-a852ef0452f9">
+<img width="1057" alt="image" src="https://github.com/user-attachments/assets/e5f6e09c-392a-44f1-9624-fbcc841f38cf">
+
