@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.nequi.franquicias.model.Franquicia;
+import com.nequi.franquicias.model.SucursalProducto;
 
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeAction;
@@ -66,7 +67,6 @@ public class FranquiciasServices {
             dynamoDbClient.putItem(request);
             return new ResponseEntity<>("La franquicia " + franquicia.getId() + " ha sido agregada correctamente", HttpStatus.OK);
         } catch(Exception e) {
-            System.out.println("Exception: " + e);
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -74,7 +74,6 @@ public class FranquiciasServices {
     // Servicio para agregar una nueva sucursal a una franquicia
     public ResponseEntity<String> agregarSucursalFranquicia(String franquiciaId, String idSucursal) {
 
-        System.out.println(franquiciaId + idSucursal);
         GetItemRequest getRequest = GetItemRequest.builder()
                 .tableName("franquicias")
                 .key(Collections.singletonMap("id", AttributeValue.builder().s(franquiciaId).build()))
@@ -88,7 +87,6 @@ public class FranquiciasServices {
         
         // Obtener la lista de sucursales actual y actualizarla
         List<AttributeValue> sucursalIdlist = new ArrayList<>(getResponse.item().getOrDefault("sucursalIds", AttributeValue.builder().l(new ArrayList<>()).build()).l());
-        System.out.println("SucursalIds" + sucursalIdlist);
         sucursalIdlist.add(AttributeValue.builder().s(idSucursal).build());
  
         // Actualizar la franquicia con la nueva lista de sucursales
@@ -106,7 +104,6 @@ public class FranquiciasServices {
         
                 try {
                     dynamoDbClient.updateItem(updateRequest);
-                    System.out.println("Sucursales de la franquicia " + franquiciaId + " ha sido actualizada");
                     return new ResponseEntity<>("Sucursales de la franquicia " + franquiciaId + " han sido actualizadas", HttpStatus.OK);
                 } catch(Exception e) {
                     return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -129,7 +126,6 @@ public class FranquiciasServices {
         
         // Obtener la lista de productos actual y actualizarla
         List<AttributeValue> productsList = new ArrayList<>(getResponse.item().getOrDefault("productos", AttributeValue.builder().l(new ArrayList<>()).build()).l());
-        System.out.println("productos" + productsList);
         productsList.add(AttributeValue.builder().s(productoId).build());
  
         // Actualizar la sucursal con la nueva lista de productos
@@ -147,7 +143,6 @@ public class FranquiciasServices {
         
                 try {
                     dynamoDbClient.updateItem(updateRequest);
-                    System.out.println("Productos de la sucursal " + sucursalId + " han sido actualizados");
                     return new ResponseEntity<>("Productos de la sucursal " + sucursalId + " han sido actualizados", HttpStatus.OK);
                 } catch(Exception e) {
                     return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -170,13 +165,11 @@ public class FranquiciasServices {
         
         // Obtener la lista de productos actual y actualizarla
         List<AttributeValue> productsList = new ArrayList<>(getResponse.item().getOrDefault("productos", AttributeValue.builder().l(new ArrayList<>()).build()).l());
-        System.out.println("productos" + productsList);
         
         // Filtrar para eliminar el producto
         List<AttributeValue> productosActualizados = productsList.stream()
         .filter(producto -> !producto.s().equals(productoId))
         .collect(Collectors.toList());
-        System.out.println("productos" + productosActualizados);
  
         // Actualizar la sucursal con la nueva lista de productos
         Map<String, AttributeValueUpdate> updateSucursal = new HashMap<>();
@@ -193,7 +186,6 @@ public class FranquiciasServices {
         
                 try {
                     dynamoDbClient.updateItem(updateRequest);
-                    System.out.println("Productos de la sucursal " + sucursalId + " han sido actualizados");
                     return new ResponseEntity<>("Productos de la sucursal " + sucursalId + " han sido actualizados", HttpStatus.OK);
                 } catch(Exception e) {
                     return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -325,5 +317,70 @@ public class FranquiciasServices {
             e.printStackTrace();
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    // Consulta las sucursales con su mayor producto en Stock para una franquicia dada
+    public ResponseEntity<List<SucursalProducto>> consultaMaxProductosStock(String franquiciaId) {
+
+        List<SucursalProducto> sucursalProductos = new ArrayList<>();
+
+        GetItemRequest getRequest = GetItemRequest.builder()
+                .tableName("franquicias")
+                .key(Collections.singletonMap("id", AttributeValue.builder().s(franquiciaId).build()))
+                .build();
+        
+        GetItemResponse getResponse = dynamoDbClient.getItem(getRequest);
+        
+        if (!getResponse.hasItem()) {
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
+
+        List<AttributeValue> sucursalesList = new ArrayList<>(getResponse.item().getOrDefault("sucursalIds", AttributeValue.builder().l(new ArrayList<>()).build()).l());
+
+        for (AttributeValue idSucursal: sucursalesList) {
+            GetItemRequest getRequest2 = GetItemRequest.builder()
+                .tableName("sucursales")
+                .key(Collections.singletonMap("id", AttributeValue.builder().s(idSucursal.s()).build()))
+                .build();
+        
+            GetItemResponse getResponse2 = dynamoDbClient.getItem(getRequest2);
+            
+            if (!getResponse2.hasItem()) {
+                return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+            }
+
+            List<AttributeValue> productosList = new ArrayList<>(getResponse2.item().getOrDefault("productos", AttributeValue.builder().l(new ArrayList<>()).build()).l());
+
+            String productWithMaxStock = null;
+            int maxStock = -1; // Inicializamos con un valor bajo
+
+            for (AttributeValue prod: productosList) {
+
+                GetItemRequest getRequest3 = GetItemRequest.builder()
+                .tableName("productos")
+                .key(Collections.singletonMap("id", AttributeValue.builder().s(prod.s()).build()))
+                .build();
+        
+                GetItemResponse getResponse3 = dynamoDbClient.getItem(getRequest3);
+                
+                if (!getResponse3.hasItem()) {
+                    return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                }
+                    AttributeValue stockAttribute = getResponse3.item().get("stock");
+                    if (stockAttribute != null && stockAttribute.n() != null) {
+                        int stock = Integer.parseInt(stockAttribute.n());
+                        
+                        // Verificar si el producto tiene un stock mayor
+                        if (stock > maxStock) {
+                            maxStock = stock;
+                            AttributeValue stockAttribute2 = getResponse3.item().get("nombre");
+                            productWithMaxStock = stockAttribute2.s();
+                        }
+                    }
+            }
+            SucursalProducto sucProd = new SucursalProducto(getResponse2.item().get("nombre").s(), productWithMaxStock);
+            sucursalProductos.add(sucProd);
+        }
+        return new ResponseEntity<>(sucursalProductos, HttpStatus.OK);
     }
 }
