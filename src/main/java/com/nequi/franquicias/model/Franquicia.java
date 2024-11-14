@@ -9,5 +9,5 @@ import lombok.Data;
 public class Franquicia {
     private String id = UUID.randomUUID().toString();
     private String nombre;
-    private List<Sucursal> sucursales;
+    private List<String> sucursalIds;
 }
